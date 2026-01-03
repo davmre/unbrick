@@ -17,6 +17,7 @@ import com.unbrick.data.model.BlockingMode
 import com.unbrick.data.model.BlockingProfile
 import com.unbrick.databinding.ActivityMainBinding
 import com.unbrick.nfc.NfcHandler
+import com.unbrick.service.AppBlockerAccessibilityService
 import com.unbrick.ui.apps.AppSelectionActivity
 import com.unbrick.util.PermissionHelper
 import kotlinx.coroutines.Job
@@ -132,6 +133,15 @@ class MainActivity : AppCompatActivity() {
             binding.btnDebugToggleLock.visibility = View.VISIBLE
             binding.btnDebugToggleLock.setOnClickListener {
                 lifecycleScope.launch {
+                    val currentlyLocked = repository.isLocked()
+                    if (!currentlyLocked) {
+                        // Trying to lock - validate first
+                        val (canLock, error) = canEnterLockedMode()
+                        if (!canLock) {
+                            Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show()
+                            return@launch
+                        }
+                    }
                     val newState = repository.toggleLock()
                     val message = if (newState) "Locked" else "Unlocked"
                     Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
@@ -372,6 +382,15 @@ class MainActivity : AppCompatActivity() {
             // Check if this is a registered tag and toggle lock
             lifecycleScope.launch {
                 if (repository.isTagRegistered(tagId)) {
+                    val currentlyLocked = repository.isLocked()
+                    if (!currentlyLocked) {
+                        // Trying to lock - validate first
+                        val (canLock, error) = canEnterLockedMode()
+                        if (!canLock) {
+                            Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show()
+                            return@launch
+                        }
+                    }
                     val newState = repository.toggleLock()
                     val message = if (newState) "Locked" else "Unlocked"
                     Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
@@ -596,5 +615,19 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    /**
+     * Checks if the app can enter locked mode.
+     * Returns a pair of (canLock, errorMessage).
+     */
+    private fun canEnterLockedMode(): Pair<Boolean, String?> {
+        if (!PermissionHelper.isAccessibilityServiceEnabled(this)) {
+            return Pair(false, "Enable accessibility service before locking")
+        }
+        if (!AppBlockerAccessibilityService.isRunning) {
+            return Pair(false, "Accessibility service not connected. Try disabling and re-enabling it in Settings.")
+        }
+        return Pair(true, null)
     }
 }
