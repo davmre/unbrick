@@ -87,4 +87,8 @@
     <string name="notification_locked_title">Apps Blocked</string>
     <string name="notification_locked_text">Tap your NFC tag to unlock</string>
     <string name="app_blocked_toast">App blocked by Unbrick</string>
+
+    <!-- Notification Listener -->
+    <string name="notification_listener_permission">Notification Blocking</string>
+    <string name="enable_notification_listener">Enable</string>
 </resources>

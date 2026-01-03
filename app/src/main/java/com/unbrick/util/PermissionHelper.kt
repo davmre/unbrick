@@ -10,6 +10,7 @@ import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import com.unbrick.receiver.UnbrickDeviceAdminReceiver
 import com.unbrick.service.AppBlockerAccessibilityService
+import com.unbrick.service.NotificationBlockerService
 
 /**
  * Helper class for checking and requesting permissions
@@ -95,6 +96,30 @@ object PermissionHelper {
                     data = Uri.parse("package:${context.packageName}")
                 }
             }
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
+    /**
+     * Check if the notification listener service is enabled
+     */
+    fun isNotificationListenerEnabled(context: Context): Boolean {
+        val serviceName = "${context.packageName}/${NotificationBlockerService::class.java.canonicalName}"
+
+        val enabledListeners = Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners"
+        ) ?: return false
+
+        return enabledListeners.split(':').any { it.equals(serviceName, ignoreCase = true) }
+    }
+
+    /**
+     * Open notification listener settings to enable the service
+     */
+    fun openNotificationListenerSettings(context: Context) {
+        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)

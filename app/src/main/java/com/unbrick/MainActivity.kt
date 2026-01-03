@@ -102,6 +102,11 @@ class MainActivity : AppCompatActivity() {
             PermissionHelper.openNotificationSettings(this)
         }
 
+        // Enable notification listener button
+        binding.btnEnableNotificationListener.setOnClickListener {
+            PermissionHelper.openNotificationListenerSettings(this)
+        }
+
         // Emergency unlock button
         binding.btnEmergencyUnlock.setOnClickListener {
             handleEmergencyUnlock()
@@ -357,6 +362,16 @@ class MainActivity : AppCompatActivity() {
         } else {
             binding.notificationStatusIcon.setImageResource(R.drawable.ic_warning)
             binding.btnEnableNotifications.visibility = View.VISIBLE
+        }
+
+        // Notification listener section (for blocking notifications)
+        val notificationListenerEnabled = PermissionHelper.isNotificationListenerEnabled(this)
+        if (notificationListenerEnabled) {
+            binding.notificationListenerStatusIcon.setImageResource(R.drawable.ic_check)
+            binding.btnEnableNotificationListener.visibility = View.GONE
+        } else {
+            binding.notificationListenerStatusIcon.setImageResource(R.drawable.ic_warning)
+            binding.btnEnableNotificationListener.visibility = View.VISIBLE
         }
 
         // NFC section
