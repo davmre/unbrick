@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.unbrick.R
 import com.unbrick.UnbrickApplication
+import com.unbrick.data.model.BlockingMode
 import com.unbrick.databinding.ActivityAppSelectionBinding
 import com.unbrick.util.InstalledApp
 import com.unbrick.util.InstalledAppsHelper
@@ -34,6 +35,7 @@ class AppSelectionActivity : AppCompatActivity() {
     private var installedApps: List<InstalledApp> = emptyList()
     private var selectedPackages: Set<String> = emptySet()
     private var profileId: Long = -1
+    private var isAllowlistMode: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +66,10 @@ class AppSelectionActivity : AppCompatActivity() {
                 return@launch
             }
 
-            // Update toolbar with profile name
+            // Set title based on blocking mode
+            isAllowlistMode = profile.blockingMode == BlockingMode.ALLOWLIST.name
+            val titleRes = if (isAllowlistMode) R.string.select_apps_title_allow else R.string.select_apps_title
+            supportActionBar?.title = getString(titleRes)
             supportActionBar?.subtitle = profile.name
 
             loadApps()
@@ -96,7 +101,7 @@ class AppSelectionActivity : AppCompatActivity() {
             selectedPackages = profileApps.map { it.packageName }.toSet()
 
             // Update adapter
-            adapter.setApps(installedApps, selectedPackages)
+            adapter.setApps(installedApps, selectedPackages, isAllowlistMode)
 
             binding.progressBar.visibility = View.GONE
 
@@ -119,10 +124,12 @@ class AppSelectionActivity : AppCompatActivity() {
 
         private var apps: List<InstalledApp> = emptyList()
         private var selected: Set<String> = emptySet()
+        private var allowlistMode: Boolean = false
 
-        fun setApps(apps: List<InstalledApp>, selected: Set<String>) {
+        fun setApps(apps: List<InstalledApp>, selected: Set<String>, isAllowlistMode: Boolean) {
             this.apps = apps
             this.selected = selected
+            this.allowlistMode = isAllowlistMode
             notifyDataSetChanged()
         }
 
@@ -164,6 +171,10 @@ class AppSelectionActivity : AppCompatActivity() {
                 itemView.setOnClickListener {
                     checkbox.isChecked = !checkbox.isChecked
                 }
+
+                // Gray = blocked: allowlist grays unselected, blocklist grays selected
+                val isBlocked = if (allowlistMode) !isSelected else isSelected
+                itemView.alpha = if (isBlocked) 0.4f else 1.0f
             }
         }
     }
