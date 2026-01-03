@@ -12,16 +12,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.tabs.TabLayout
 import com.unbrick.R
 import com.unbrick.UnbrickApplication
-import com.unbrick.data.model.BlockingMode
-import com.unbrick.data.model.BlockingProfile
 import com.unbrick.databinding.ActivityAppSelectionBinding
 import com.unbrick.util.InstalledApp
 import com.unbrick.util.InstalledAppsHelper
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -38,7 +34,6 @@ class AppSelectionActivity : AppCompatActivity() {
     private var installedApps: List<InstalledApp> = emptyList()
     private var selectedPackages: Set<String> = emptySet()
     private var profileId: Long = -1
-    private var profile: BlockingProfile? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,7 +57,7 @@ class AppSelectionActivity : AppCompatActivity() {
 
     private fun loadProfile() {
         lifecycleScope.launch {
-            profile = repository.getProfileById(profileId)
+            val profile = repository.getProfileById(profileId)
             if (profile == null) {
                 Toast.makeText(this@AppSelectionActivity, "Profile not found", Toast.LENGTH_SHORT).show()
                 finish()
@@ -70,42 +65,9 @@ class AppSelectionActivity : AppCompatActivity() {
             }
 
             // Update toolbar with profile name
-            supportActionBar?.subtitle = profile?.name
+            supportActionBar?.subtitle = profile.name
 
-            setupTabs()
             loadApps()
-        }
-    }
-
-    private fun setupTabs() {
-        val mode = BlockingMode.valueOf(profile?.blockingMode ?: BlockingMode.BLOCKLIST.name)
-
-        binding.tabLayout.getTabAt(if (mode == BlockingMode.BLOCKLIST) 0 else 1)?.select()
-        updateModeDescription(mode)
-
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                val newMode = when (tab?.position) {
-                    0 -> BlockingMode.BLOCKLIST
-                    else -> BlockingMode.ALLOWLIST
-                }
-                lifecycleScope.launch {
-                    profile?.let {
-                        repository.updateProfile(it.id, it.name, newMode)
-                    }
-                }
-                updateModeDescription(newMode)
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab?) {}
-            override fun onTabReselected(tab: TabLayout.Tab?) {}
-        })
-    }
-
-    private fun updateModeDescription(mode: BlockingMode) {
-        binding.modeDescription.text = when (mode) {
-            BlockingMode.BLOCKLIST -> getString(R.string.mode_blocklist_desc)
-            BlockingMode.ALLOWLIST -> getString(R.string.mode_allowlist_desc)
         }
     }
 

@@ -256,17 +256,24 @@ class UnbrickRepository(
         }
     }
 
-    suspend fun ensureDefaultProfileExists() {
-        if (blockingProfileDao.getProfileCount() == 0) {
-            val defaultId = blockingProfileDao.insert(
-                BlockingProfile(
-                    name = "Default",
-                    blockingMode = BlockingMode.BLOCKLIST.name,
-                    isActive = true
-                )
-            )
-            ensureSettingsExist()
-            appSettingsDao.setActiveProfileId(defaultId)
+    /**
+     * Cleans up orphan profiles (profiles with no apps configured).
+     * Called on app startup to remove profiles from crashed/abandoned create flows.
+     * Won't delete the last remaining profile to avoid leaving the user with none.
+     */
+    suspend fun deleteEmptyProfiles() {
+        val profiles = blockingProfileDao.getAllProfilesSync()
+        if (profiles.size <= 1) return // Don't delete if only one profile exists
+
+        for (profile in profiles) {
+            val appCount = profileAppDao.getAppCountForProfile(profile.id)
+            if (appCount == 0 && profiles.size > 1) {
+                // Delete empty profile, but ensure we keep at least one
+                val remainingCount = blockingProfileDao.getProfileCount()
+                if (remainingCount > 1) {
+                    blockingProfileDao.deleteById(profile.id)
+                }
+            }
         }
     }
 }

@@ -177,14 +177,39 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Manage Apps Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnManageApps"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+            <!-- No Profiles State -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/noProfilesCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:text="@string/manage_apps" />
+                android:visibility="gone"
+                app:cardCornerRadius="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No profiles configured"
+                        android:textSize="16sp"
+                        android:alpha="0.7" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCreateFirstProfile"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/create_profile" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Permissions Section -->
             <com.google.android.material.card.MaterialCardView

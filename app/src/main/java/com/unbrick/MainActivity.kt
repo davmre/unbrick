@@ -39,10 +39,27 @@ class MainActivity : AppCompatActivity() {
     private var activeProfile: BlockingProfile? = null
     private var isLocked = false
 
+    // For profile dialog - track the profile being edited and if it's new
+    private var editingProfileId: Long? = null
+    private var isNewProfile = false
+    private var profileDialog: androidx.appcompat.app.AlertDialog? = null
+
     private val deviceAdminLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         updatePermissionStatus()
+    }
+
+    private val appSelectionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // After returning from app selection, refresh the dialog if it's open
+        editingProfileId?.let { profileId ->
+            lifecycleScope.launch {
+                val appCount = repository.getAppCountForProfile(profileId)
+                updateDialogSaveButtonState(appCount)
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,15 +85,6 @@ class MainActivity : AppCompatActivity() {
             startTagRegistration()
         }
 
-        // Manage apps button - passes active profile ID
-        binding.btnManageApps.setOnClickListener {
-            activeProfile?.let { profile ->
-                val intent = Intent(this, AppSelectionActivity::class.java)
-                intent.putExtra(AppSelectionActivity.EXTRA_PROFILE_ID, profile.id)
-                startActivity(intent)
-            } ?: Toast.makeText(this, "No active profile", Toast.LENGTH_SHORT).show()
-        }
-
         // Enable accessibility button
         binding.btnEnableAccessibility.setOnClickListener {
             PermissionHelper.openAccessibilitySettings(this)
@@ -97,7 +105,7 @@ class MainActivity : AppCompatActivity() {
         binding.profileDropdown.setOnItemClickListener { _, _, position, _ ->
             if (position == profiles.size) {
                 // "Add new profile..." selected
-                showCreateProfileDialog()
+                createNewProfile()
             } else {
                 // Existing profile selected
                 val selectedProfile = profiles[position]
@@ -111,7 +119,12 @@ class MainActivity : AppCompatActivity() {
 
         // Edit profile button
         binding.btnEditProfile.setOnClickListener {
-            activeProfile?.let { showEditProfileDialog(it) }
+            activeProfile?.let { showProfileDialog(it, isNew = false) }
+        }
+
+        // Create first profile button (shown when no profiles exist)
+        binding.btnCreateFirstProfile.setOnClickListener {
+            createNewProfile()
         }
     }
 
@@ -144,24 +157,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateProfileDropdown() {
-        val items = profiles.map { it.name }.toMutableList()
-        items.add(getString(R.string.add_new_profile))
+        if (profiles.isEmpty()) {
+            // Show no-profiles state
+            binding.profileCard.visibility = View.GONE
+            binding.noProfilesCard.visibility = View.VISIBLE
+        } else {
+            // Show normal profile selector
+            binding.profileCard.visibility = View.VISIBLE
+            binding.noProfilesCard.visibility = View.GONE
 
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, items)
-        binding.profileDropdown.setAdapter(adapter)
+            val items = profiles.map { it.name }.toMutableList()
+            items.add(getString(R.string.add_new_profile))
 
-        // Set current selection text
-        activeProfile?.let { profile ->
-            binding.profileDropdown.setText(profile.name, false)
+            val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, items)
+            binding.profileDropdown.setAdapter(adapter)
+
+            // Set current selection text
+            activeProfile?.let { profile ->
+                binding.profileDropdown.setText(profile.name, false)
+            }
         }
     }
 
     private fun updateProfileUIEnabledState() {
         // Disable profile selection when locked
-        binding.profileDropdown.isEnabled = !isLocked
-        binding.profileDropdownLayout.isEnabled = !isLocked
-        binding.btnEditProfile.isEnabled = !isLocked
+        val enabled = !isLocked && profiles.isNotEmpty()
+        binding.profileDropdown.isEnabled = enabled
+        binding.profileDropdownLayout.isEnabled = enabled
+        binding.btnEditProfile.isEnabled = enabled
         binding.profileCard.alpha = if (isLocked) 0.5f else 1.0f
+        binding.noProfilesCard.alpha = if (isLocked) 0.5f else 1.0f
+        binding.btnCreateFirstProfile.isEnabled = !isLocked
     }
 
     private fun updateLockUI(isLocked: Boolean) {
@@ -381,68 +407,165 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showCreateProfileDialog() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_profile, null)
-        val nameInput = dialogView.findViewById<TextInputEditText>(R.id.profileNameInput)
-        val modeToggle = dialogView.findViewById<MaterialButtonToggleGroup>(R.id.modeToggleGroup)
-
-        // Default to blocklist mode
-        modeToggle.check(R.id.btnBlocklist)
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.create_profile)
-            .setView(dialogView)
-            .setPositiveButton(R.string.create) { _, _ ->
-                val name = nameInput.text?.toString()?.trim() ?: ""
-                if (name.isNotEmpty()) {
-                    val mode = if (modeToggle.checkedButtonId == R.id.btnBlocklist) {
-                        BlockingMode.BLOCKLIST
-                    } else {
-                        BlockingMode.ALLOWLIST
-                    }
-                    lifecycleScope.launch {
-                        val newId = repository.createProfile(name, mode)
-                        repository.setActiveProfile(newId)
-                        Toast.makeText(this@MainActivity, R.string.profile_created, Toast.LENGTH_SHORT).show()
-                    }
-                }
+    private fun createNewProfile() {
+        lifecycleScope.launch {
+            // Create profile immediately with default name
+            val newId = repository.createProfile("New Profile", BlockingMode.BLOCKLIST)
+            val newProfile = repository.getProfileById(newId)
+            newProfile?.let {
+                showProfileDialog(it, isNew = true)
             }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        }
     }
 
-    private fun showEditProfileDialog(profile: BlockingProfile) {
+    private fun showProfileDialog(profile: BlockingProfile, isNew: Boolean) {
+        editingProfileId = profile.id
+        isNewProfile = isNew
+
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_profile, null)
         val nameInput = dialogView.findViewById<TextInputEditText>(R.id.profileNameInput)
         val modeToggle = dialogView.findViewById<MaterialButtonToggleGroup>(R.id.modeToggleGroup)
+        val modeDescription = dialogView.findViewById<android.widget.TextView>(R.id.modeDescription)
+        val btnConfigureApps = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConfigureApps)
+        val appCountText = dialogView.findViewById<android.widget.TextView>(R.id.appCountText)
 
         // Pre-fill with current values
-        nameInput.setText(profile.name)
+        nameInput.setText(if (isNew) "" else profile.name)
+        nameInput.hint = getString(R.string.profile_name_hint)
         val currentMode = BlockingMode.valueOf(profile.blockingMode)
         modeToggle.check(if (currentMode == BlockingMode.BLOCKLIST) R.id.btnBlocklist else R.id.btnAllowlist)
 
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.edit_profile)
+        // Update mode description when toggle changes
+        modeToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                modeDescription.text = when (checkedId) {
+                    R.id.btnBlocklist -> getString(R.string.mode_blocklist_desc)
+                    else -> getString(R.string.mode_allowlist_desc)
+                }
+            }
+        }
+
+        val builder = MaterialAlertDialogBuilder(this)
+            .setTitle(if (isNew) R.string.create_profile else R.string.edit_profile)
             .setView(dialogView)
-            .setPositiveButton(R.string.save) { _, _ ->
-                val name = nameInput.text?.toString()?.trim() ?: ""
-                if (name.isNotEmpty()) {
+            .setPositiveButton(R.string.save, null) // Set listener later to prevent auto-dismiss
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                if (isNew) {
+                    // Delete the draft profile
+                    lifecycleScope.launch {
+                        repository.deleteProfile(profile.id)
+                    }
+                }
+                clearDialogState()
+            }
+
+        // Only show delete button for existing profiles (not the last one)
+        if (!isNew) {
+            builder.setNeutralButton(R.string.delete_profile) { _, _ ->
+                showDeleteProfileConfirmation(profile)
+            }
+        }
+
+        profileDialog = builder.create()
+        profileDialog?.setOnShowListener { dialog ->
+            val alertDialog = dialog as androidx.appcompat.app.AlertDialog
+            val saveButton = alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+
+            // Configure apps button
+            btnConfigureApps.setOnClickListener {
+                // Save current name/mode before navigating
+                val name = nameInput.text?.toString()?.trim()?.takeIf { it.isNotEmpty() } ?: "New Profile"
+                val mode = if (modeToggle.checkedButtonId == R.id.btnBlocklist) {
+                    BlockingMode.BLOCKLIST
+                } else {
+                    BlockingMode.ALLOWLIST
+                }
+                lifecycleScope.launch {
+                    repository.updateProfile(profile.id, name, mode)
+                }
+
+                // Navigate to app selection
+                val intent = Intent(this, AppSelectionActivity::class.java)
+                intent.putExtra(AppSelectionActivity.EXTRA_PROFILE_ID, profile.id)
+                appSelectionLauncher.launch(intent)
+            }
+
+            // Update app count and save button state
+            lifecycleScope.launch {
+                val appCount = repository.getAppCountForProfile(profile.id)
+                updateAppCountText(appCountText, appCount)
+                saveButton.isEnabled = appCount > 0
+            }
+
+            // Save button click handler
+            saveButton.setOnClickListener {
+                val name = nameInput.text?.toString()?.trim()
+                if (name.isNullOrEmpty()) {
+                    nameInput.error = "Name required"
+                    return@setOnClickListener
+                }
+
+                lifecycleScope.launch {
+                    val appCount = repository.getAppCountForProfile(profile.id)
+                    if (appCount == 0) {
+                        Toast.makeText(this@MainActivity, "Configure at least one app", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+
                     val mode = if (modeToggle.checkedButtonId == R.id.btnBlocklist) {
                         BlockingMode.BLOCKLIST
                     } else {
                         BlockingMode.ALLOWLIST
                     }
-                    lifecycleScope.launch {
-                        repository.updateProfile(profile.id, name, mode)
-                        Toast.makeText(this@MainActivity, R.string.profile_updated, Toast.LENGTH_SHORT).show()
-                    }
+                    repository.updateProfile(profile.id, name, mode)
+                    repository.setActiveProfile(profile.id)
+
+                    val message = if (isNew) R.string.profile_created else R.string.profile_updated
+                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+
+                    clearDialogState()
+                    alertDialog.dismiss()
                 }
             }
-            .setNegativeButton(R.string.cancel, null)
-            .setNeutralButton(R.string.delete_profile) { _, _ ->
-                showDeleteProfileConfirmation(profile)
+        }
+
+        profileDialog?.setOnDismissListener {
+            // If dialog is dismissed without saving a new profile, delete it
+            if (isNewProfile && editingProfileId != null) {
+                lifecycleScope.launch {
+                    repository.deleteProfile(editingProfileId!!)
+                }
             }
-            .show()
+            clearDialogState()
+        }
+
+        profileDialog?.show()
+    }
+
+    private fun updateAppCountText(textView: android.widget.TextView, count: Int) {
+        textView.text = when (count) {
+            0 -> "No apps selected"
+            1 -> "1 app selected"
+            else -> "$count apps selected"
+        }
+    }
+
+    private fun updateDialogSaveButtonState(appCount: Int) {
+        profileDialog?.let { dialog ->
+            val saveButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+            saveButton?.isEnabled = appCount > 0
+
+            // Also update the app count text
+            dialog.findViewById<android.widget.TextView>(R.id.appCountText)?.let {
+                updateAppCountText(it, appCount)
+            }
+        }
+    }
+
+    private fun clearDialogState() {
+        editingProfileId = null
+        isNewProfile = false
+        profileDialog = null
     }
 
     private fun showDeleteProfileConfirmation(profile: BlockingProfile) {

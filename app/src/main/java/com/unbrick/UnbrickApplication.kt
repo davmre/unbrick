@@ -33,10 +33,10 @@ class UnbrickApplication : Application() {
 
         createNotificationChannel()
 
-        // Ensure default states exist
+        // Ensure default states exist and clean up orphans
         applicationScope.launch {
             repository.ensureLockStateExists()
-            repository.ensureDefaultProfileExists()
+            repository.deleteEmptyProfiles()
         }
     }
 

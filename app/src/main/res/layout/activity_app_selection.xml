@@ -11,34 +11,6 @@
         android:layout_height="?attr/actionBarSize"
         app:navigationIcon="?attr/homeAsUpIndicator" />
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:tabMode="fixed"
-        app:tabGravity="fill">
-
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/mode_blocklist" />
-
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/mode_allowlist" />
-
-    </com.google.android.material.tabs.TabLayout>
-
-    <TextView
-        android:id="@+id/modeDescription"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="@string/mode_blocklist_desc"
-        android:textSize="14sp"
-        android:alpha="0.7" />
-
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
