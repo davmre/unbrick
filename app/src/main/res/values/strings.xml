@@ -44,6 +44,7 @@
 
     <!-- App Selection -->
     <string name="select_apps_title">Select Apps to Block</string>
+    <string name="select_apps_title_allow">Select Apps to Allow</string>
     <string name="mode_blocklist">Blocklist Mode</string>
     <string name="mode_allowlist">Allowlist Mode</string>
     <string name="mode_blocklist_desc">Block selected apps when locked</string>
@@ -90,4 +91,8 @@
     <string name="notification_locked_title">Apps Blocked</string>
     <string name="notification_locked_text">Tap your NFC tag to unlock</string>
     <string name="app_blocked_toast">App blocked by Unbrick</string>
+
+    <!-- Notification Listener -->
+    <string name="notification_listener_permission">Notification Blocking</string>
+    <string name="enable_notification_listener">Enable</string>
 </resources>
