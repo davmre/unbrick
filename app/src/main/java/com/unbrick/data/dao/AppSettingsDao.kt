@@ -18,8 +18,8 @@ interface AppSettingsDao {
     @Update
     suspend fun update(settings: AppSettings)
 
-    @Query("UPDATE app_settings SET blockingMode = :mode WHERE id = 1")
-    suspend fun setBlockingMode(mode: String)
+    @Query("UPDATE app_settings SET activeProfileId = :profileId WHERE id = 1")
+    suspend fun setActiveProfileId(profileId: Long)
 
     @Query("UPDATE app_settings SET unlockDelayMs = :delayMs WHERE id = 1")
     suspend fun setUnlockDelay(delayMs: Long)

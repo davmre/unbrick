@@ -4,15 +4,121 @@ import com.unbrick.data.dao.*
 import com.unbrick.data.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 
 class UnbrickRepository(
-    private val blockedAppDao: BlockedAppDao,
+    private val blockingProfileDao: BlockingProfileDao,
+    private val profileAppDao: ProfileAppDao,
     private val lockStateDao: LockStateDao,
     private val nfcTagDao: NfcTagDao,
     private val appSettingsDao: AppSettingsDao
 ) {
-    // Lock State
+    // ==================== Profile Management ====================
+
+    val allProfiles: Flow<List<BlockingProfile>> = blockingProfileDao.getAllProfiles()
+    val activeProfile: Flow<BlockingProfile?> = blockingProfileDao.getActiveProfile()
+
+    suspend fun getActiveProfileSync(): BlockingProfile? {
+        return blockingProfileDao.getActiveProfileSync()
+    }
+
+    suspend fun getProfileById(id: Long): BlockingProfile? {
+        return blockingProfileDao.getProfileById(id)
+    }
+
+    suspend fun createProfile(name: String, mode: BlockingMode = BlockingMode.BLOCKLIST): Long {
+        val profile = BlockingProfile(
+            name = name,
+            blockingMode = mode.name,
+            isActive = false
+        )
+        return blockingProfileDao.insert(profile)
+    }
+
+    suspend fun setActiveProfile(profileId: Long) {
+        blockingProfileDao.setActiveProfile(profileId)
+        appSettingsDao.setActiveProfileId(profileId)
+    }
+
+    suspend fun updateProfile(profileId: Long, name: String, mode: BlockingMode) {
+        blockingProfileDao.updateName(profileId, name)
+        blockingProfileDao.updateBlockingMode(profileId, mode.name)
+    }
+
+    suspend fun deleteProfile(profileId: Long): Boolean {
+        val count = blockingProfileDao.getProfileCount()
+        if (count <= 1) return false // Cannot delete last profile
+
+        val wasActive = blockingProfileDao.getProfileById(profileId)?.isActive ?: false
+        blockingProfileDao.deleteById(profileId)
+
+        // If deleted profile was active, activate another
+        if (wasActive) {
+            val remainingProfiles = blockingProfileDao.getAllProfilesSync()
+            if (remainingProfiles.isNotEmpty()) {
+                setActiveProfile(remainingProfiles.first().id)
+            }
+        }
+        return true
+    }
+
+    suspend fun duplicateProfile(profileId: Long, newName: String): Long {
+        val original = blockingProfileDao.getProfileById(profileId) ?: return -1
+        val apps = profileAppDao.getAppsForProfileSync(profileId)
+
+        val newProfile = BlockingProfile(
+            name = newName,
+            blockingMode = original.blockingMode,
+            isActive = false
+        )
+        val newId = blockingProfileDao.insert(newProfile)
+
+        val newApps = apps.map { it.copy(profileId = newId) }
+        profileAppDao.insertAll(newApps)
+
+        return newId
+    }
+
+    suspend fun getProfileCount(): Int {
+        return blockingProfileDao.getProfileCount()
+    }
+
+    // ==================== Profile Apps ====================
+
+    fun getAppsForProfile(profileId: Long): Flow<List<ProfileApp>> {
+        return profileAppDao.getAppsForProfile(profileId)
+    }
+
+    suspend fun getAppsForProfileSync(profileId: Long): List<ProfileApp> {
+        return profileAppDao.getAppsForProfileSync(profileId)
+    }
+
+    suspend fun setAppInProfile(profileId: Long, packageName: String, appName: String, blocked: Boolean) {
+        if (blocked) {
+            profileAppDao.insert(ProfileApp(profileId, packageName, appName, true))
+        } else {
+            profileAppDao.deleteByPackageName(profileId, packageName)
+        }
+    }
+
+    suspend fun getAppCountForProfile(profileId: Long): Int {
+        return profileAppDao.getAppCountForProfile(profileId)
+    }
+
+    // ==================== App Blocking (called by AccessibilityService) ====================
+
+    suspend fun isAppBlocked(packageName: String): Boolean {
+        val activeProfile = blockingProfileDao.getActiveProfileSync() ?: return false
+        val mode = BlockingMode.valueOf(activeProfile.blockingMode)
+        val isInList = profileAppDao.isAppInActiveProfile(packageName)
+
+        return when (mode) {
+            BlockingMode.BLOCKLIST -> isInList
+            BlockingMode.ALLOWLIST -> !isInList
+        }
+    }
+
+    // ==================== Lock State ====================
+
     val lockState: Flow<LockState?> = lockStateDao.getLockState()
 
     suspend fun isLocked(): Boolean {
@@ -44,7 +150,8 @@ class UnbrickRepository(
         }
     }
 
-    // Emergency Unlock
+    // ==================== Emergency Unlock ====================
+
     suspend fun requestEmergencyUnlock() {
         lockStateDao.setEmergencyUnlockRequested(System.currentTimeMillis())
     }
@@ -81,35 +188,8 @@ class UnbrickRepository(
         return false
     }
 
-    // Blocked Apps
-    val blockedApps: Flow<List<BlockedApp>> = blockedAppDao.getAllBlockedApps()
+    // ==================== NFC Tags ====================
 
-    suspend fun isAppBlocked(packageName: String): Boolean {
-        val settings = appSettingsDao.getSettingsSync()
-        val mode = settings?.blockingMode?.let { BlockingMode.valueOf(it) } ?: BlockingMode.BLOCKLIST
-
-        val isInList = blockedAppDao.isAppBlocked(packageName)
-
-        return when (mode) {
-            BlockingMode.BLOCKLIST -> isInList
-            BlockingMode.ALLOWLIST -> !isInList
-        }
-    }
-
-    suspend fun setAppBlocked(packageName: String, appName: String, blocked: Boolean) {
-        if (blocked) {
-            blockedAppDao.insert(BlockedApp(packageName, appName, true))
-        } else {
-            blockedAppDao.deleteByPackageName(packageName)
-        }
-    }
-
-    suspend fun updateBlockedApps(apps: List<BlockedApp>) {
-        blockedAppDao.deleteAll()
-        blockedAppDao.insertAll(apps)
-    }
-
-    // NFC Tags
     val registeredTags: Flow<List<NfcTagInfo>> = nfcTagDao.getAllTags()
 
     suspend fun isTagRegistered(tagId: String): Boolean {
@@ -132,18 +212,14 @@ class UnbrickRepository(
         nfcTagDao.deleteAll()
     }
 
-    // Settings
+    // ==================== Settings ====================
+
     val settings: Flow<AppSettings?> = appSettingsDao.getSettings()
 
     suspend fun getSettings(): AppSettings {
         return appSettingsDao.getSettingsSync() ?: AppSettings().also {
             appSettingsDao.insert(it)
         }
-    }
-
-    suspend fun setBlockingMode(mode: BlockingMode) {
-        ensureSettingsExist()
-        appSettingsDao.setBlockingMode(mode.name)
     }
 
     suspend fun setUnlockDelay(delayMs: Long) {
@@ -172,10 +248,25 @@ class UnbrickRepository(
         }
     }
 
-    // Initialize default lock state if not exists
+    // ==================== Initialization ====================
+
     suspend fun ensureLockStateExists() {
         if (lockStateDao.getLockStateSync() == null) {
             lockStateDao.insert(LockState())
+        }
+    }
+
+    suspend fun ensureDefaultProfileExists() {
+        if (blockingProfileDao.getProfileCount() == 0) {
+            val defaultId = blockingProfileDao.insert(
+                BlockingProfile(
+                    name = "Default",
+                    blockingMode = BlockingMode.BLOCKLIST.name,
+                    isActive = true
+                )
+            )
+            ensureSettingsExist()
+            appSettingsDao.setActiveProfileId(defaultId)
         }
     }
 }

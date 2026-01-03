@@ -14,8 +14,27 @@
     <string name="tap_nfc_to_toggle">Tap your NFC tag to toggle</string>
     <string name="no_tag_registered">No NFC tag registered</string>
     <string name="register_tag">Register NFC Tag</string>
-    <string name="manage_apps">Manage Blocked Apps</string>
+    <string name="manage_apps">Configure Apps</string>
     <string name="settings">Settings</string>
+
+    <!-- Profiles -->
+    <string name="active_profile">Active Profile</string>
+    <string name="select_profile">Select profile</string>
+    <string name="add_new_profile">+ Add new profile…</string>
+    <string name="create_profile">Create Profile</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="profile_name">Profile name</string>
+    <string name="profile_name_hint">e.g., Work Mode, Focus Time</string>
+    <string name="blocking_mode">Blocking mode</string>
+    <string name="delete_profile">Delete</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="create">Create</string>
+    <string name="cannot_delete_last_profile">Cannot delete the last profile</string>
+    <string name="delete_profile_confirm">Delete \"%s\"?\n\nThis will remove the profile and all its app settings.</string>
+    <string name="profile_deleted">Profile deleted</string>
+    <string name="profile_created">Profile created</string>
+    <string name="profile_updated">Profile saved</string>
 
     <!-- NFC Registration -->
     <string name="register_tag_title">Register NFC Tag</string>

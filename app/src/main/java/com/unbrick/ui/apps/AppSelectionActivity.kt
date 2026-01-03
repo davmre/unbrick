@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,8 +15,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.unbrick.R
 import com.unbrick.UnbrickApplication
-import com.unbrick.data.model.BlockedApp
 import com.unbrick.data.model.BlockingMode
+import com.unbrick.data.model.BlockingProfile
 import com.unbrick.databinding.ActivityAppSelectionBinding
 import com.unbrick.util.InstalledApp
 import com.unbrick.util.InstalledAppsHelper
@@ -26,45 +27,74 @@ import kotlinx.coroutines.withContext
 
 class AppSelectionActivity : AppCompatActivity() {
 
+    companion object {
+        const val EXTRA_PROFILE_ID = "profile_id"
+    }
+
     private lateinit var binding: ActivityAppSelectionBinding
     private val repository by lazy { (application as UnbrickApplication).repository }
 
     private lateinit var adapter: AppListAdapter
     private var installedApps: List<InstalledApp> = emptyList()
-    private var blockedPackages: Set<String> = emptySet()
+    private var selectedPackages: Set<String> = emptySet()
+    private var profileId: Long = -1
+    private var profile: BlockingProfile? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAppSelectionBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        profileId = intent.getLongExtra(EXTRA_PROFILE_ID, -1)
+        if (profileId == -1L) {
+            Toast.makeText(this, "No profile selected", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.select_apps_title)
 
-        setupTabs()
         setupRecyclerView()
-        loadApps()
+        loadProfile()
+    }
+
+    private fun loadProfile() {
+        lifecycleScope.launch {
+            profile = repository.getProfileById(profileId)
+            if (profile == null) {
+                Toast.makeText(this@AppSelectionActivity, "Profile not found", Toast.LENGTH_SHORT).show()
+                finish()
+                return@launch
+            }
+
+            // Update toolbar with profile name
+            supportActionBar?.subtitle = profile?.name
+
+            setupTabs()
+            loadApps()
+        }
     }
 
     private fun setupTabs() {
-        lifecycleScope.launch {
-            val settings = repository.getSettings()
-            val mode = BlockingMode.valueOf(settings.blockingMode)
+        val mode = BlockingMode.valueOf(profile?.blockingMode ?: BlockingMode.BLOCKLIST.name)
 
-            binding.tabLayout.getTabAt(if (mode == BlockingMode.BLOCKLIST) 0 else 1)?.select()
-        }
+        binding.tabLayout.getTabAt(if (mode == BlockingMode.BLOCKLIST) 0 else 1)?.select()
+        updateModeDescription(mode)
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                val mode = when (tab?.position) {
+                val newMode = when (tab?.position) {
                     0 -> BlockingMode.BLOCKLIST
                     else -> BlockingMode.ALLOWLIST
                 }
                 lifecycleScope.launch {
-                    repository.setBlockingMode(mode)
+                    profile?.let {
+                        repository.updateProfile(it.id, it.name, newMode)
+                    }
                 }
-                updateModeDescription(mode)
+                updateModeDescription(newMode)
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
@@ -82,7 +112,7 @@ class AppSelectionActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         adapter = AppListAdapter { app, isChecked ->
             lifecycleScope.launch {
-                repository.setAppBlocked(app.packageName, app.appName, isChecked)
+                repository.setAppInProfile(profileId, app.packageName, app.appName, isChecked)
             }
         }
 
@@ -99,19 +129,19 @@ class AppSelectionActivity : AppCompatActivity() {
                 InstalledAppsHelper.getLaunchableApps(this@AppSelectionActivity)
             }
 
-            // Get currently blocked apps
-            val blockedApps = repository.blockedApps.first()
-            blockedPackages = blockedApps.map { it.packageName }.toSet()
+            // Get currently selected apps for this profile
+            val profileApps = repository.getAppsForProfileSync(profileId)
+            selectedPackages = profileApps.map { it.packageName }.toSet()
 
             // Update adapter
-            adapter.setApps(installedApps, blockedPackages)
+            adapter.setApps(installedApps, selectedPackages)
 
             binding.progressBar.visibility = View.GONE
 
-            // Observe changes
-            repository.blockedApps.collect { blocked ->
-                blockedPackages = blocked.map { it.packageName }.toSet()
-                adapter.updateBlockedPackages(blockedPackages)
+            // Observe changes for this profile
+            repository.getAppsForProfile(profileId).collect { apps ->
+                selectedPackages = apps.map { it.packageName }.toSet()
+                adapter.updateSelectedPackages(selectedPackages)
             }
         }
     }
@@ -126,16 +156,16 @@ class AppSelectionActivity : AppCompatActivity() {
     ) : RecyclerView.Adapter<AppListAdapter.ViewHolder>() {
 
         private var apps: List<InstalledApp> = emptyList()
-        private var blocked: Set<String> = emptySet()
+        private var selected: Set<String> = emptySet()
 
-        fun setApps(apps: List<InstalledApp>, blocked: Set<String>) {
+        fun setApps(apps: List<InstalledApp>, selected: Set<String>) {
             this.apps = apps
-            this.blocked = blocked
+            this.selected = selected
             notifyDataSetChanged()
         }
 
-        fun updateBlockedPackages(blocked: Set<String>) {
-            this.blocked = blocked
+        fun updateSelectedPackages(selected: Set<String>) {
+            this.selected = selected
             notifyDataSetChanged()
         }
 
@@ -147,7 +177,7 @@ class AppSelectionActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val app = apps[position]
-            holder.bind(app, app.packageName in blocked)
+            holder.bind(app, app.packageName in selected)
         }
 
         override fun getItemCount() = apps.size
@@ -158,13 +188,13 @@ class AppSelectionActivity : AppCompatActivity() {
             private val packageName: TextView = itemView.findViewById(R.id.appPackage)
             private val checkbox: CheckBox = itemView.findViewById(R.id.appCheckbox)
 
-            fun bind(app: InstalledApp, isBlocked: Boolean) {
+            fun bind(app: InstalledApp, isSelected: Boolean) {
                 app.icon?.let { icon.setImageDrawable(it) }
                 name.text = app.appName
                 packageName.text = app.packageName
 
                 checkbox.setOnCheckedChangeListener(null)
-                checkbox.isChecked = isBlocked
+                checkbox.isChecked = isSelected
                 checkbox.setOnCheckedChangeListener { _, checked ->
                     onAppToggled(app, checked)
                 }

@@ -19,7 +19,8 @@ class UnbrickApplication : Application() {
 
     val repository by lazy {
         UnbrickRepository(
-            database.blockedAppDao(),
+            database.blockingProfileDao(),
+            database.profileAppDao(),
             database.lockStateDao(),
             database.nfcTagDao(),
             database.appSettingsDao()
@@ -35,6 +36,7 @@ class UnbrickApplication : Application() {
         // Ensure default states exist
         applicationScope.launch {
             repository.ensureLockStateExists()
+            repository.ensureDefaultProfileExists()
         }
     }
 
