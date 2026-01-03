@@ -59,6 +59,7 @@
         <service
             android:name=".service.AppBlockerAccessibilityService"
             android:exported="false"
+            android:foregroundServiceType="specialUse"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -66,6 +67,9 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="App blocking accessibility service that runs in foreground to redirect users away from blocked apps" />
         </service>
 
         <!-- Device Admin Receiver for uninstall protection -->
