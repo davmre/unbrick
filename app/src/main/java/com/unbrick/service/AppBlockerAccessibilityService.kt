@@ -66,12 +66,9 @@ class AppBlockerAccessibilityService : AccessibilityService() {
         // Don't block system UI elements
         if (packageName in SYSTEM_PACKAGES) return
 
-        Log.d(TAG, "Window changed to: $packageName")
-
         serviceScope.launch {
             try {
                 val isLocked = repository.isLocked()
-                Log.d(TAG, "isLocked: $isLocked")
                 if (!isLocked) return@launch
 
                 // Check if we should block settings access
@@ -83,9 +80,7 @@ class AppBlockerAccessibilityService : AccessibilityService() {
                 }
 
                 // Check if this specific app is blocked
-                val shouldBlock = repository.isAppBlocked(packageName)
-                Log.d(TAG, "isAppBlocked($packageName): $shouldBlock")
-                if (shouldBlock) {
+                if (repository.isAppBlocked(packageName)) {
                     blockApp(packageName)
                 }
             } catch (e: Exception) {

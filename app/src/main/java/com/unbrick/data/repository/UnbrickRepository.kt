@@ -107,23 +107,14 @@ class UnbrickRepository(
     // ==================== App Blocking (called by AccessibilityService) ====================
 
     suspend fun isAppBlocked(packageName: String): Boolean {
-        val activeProfile = blockingProfileDao.getActiveProfileSync()
-        if (activeProfile == null) {
-            android.util.Log.d("UnbrickRepo", "isAppBlocked: No active profile found")
-            return false
-        }
-        android.util.Log.d("UnbrickRepo", "isAppBlocked: Active profile = ${activeProfile.name} (id=${activeProfile.id}, mode=${activeProfile.blockingMode})")
-
+        val activeProfile = blockingProfileDao.getActiveProfileSync() ?: return false
         val mode = BlockingMode.valueOf(activeProfile.blockingMode)
         val isInList = profileAppDao.isAppInActiveProfile(packageName)
-        android.util.Log.d("UnbrickRepo", "isAppBlocked: $packageName isInList=$isInList, mode=$mode")
 
-        val result = when (mode) {
+        return when (mode) {
             BlockingMode.BLOCKLIST -> isInList
             BlockingMode.ALLOWLIST -> !isInList
         }
-        android.util.Log.d("UnbrickRepo", "isAppBlocked: result=$result")
-        return result
     }
 
     // ==================== Lock State ====================
