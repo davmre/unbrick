@@ -126,6 +126,18 @@ class MainActivity : AppCompatActivity() {
         binding.btnCreateFirstProfile.setOnClickListener {
             createNewProfile()
         }
+
+        // Debug toggle lock button (only in debug builds on emulator or when NFC unavailable)
+        if (BuildConfig.DEBUG && (PermissionHelper.isEmulator() || !nfcHandler.isNfcAvailable)) {
+            binding.btnDebugToggleLock.visibility = View.VISIBLE
+            binding.btnDebugToggleLock.setOnClickListener {
+                lifecycleScope.launch {
+                    val newState = repository.toggleLock()
+                    val message = if (newState) "Locked" else "Unlocked"
+                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun observeState() {

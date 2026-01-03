@@ -66,6 +66,16 @@
                         android:text="@string/tap_nfc_to_toggle"
                         android:textSize="14sp" />
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDebugToggleLock"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Debug: Toggle Lock"
+                        android:textColor="@android:color/holo_orange_dark"
+                        android:visibility="gone" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
