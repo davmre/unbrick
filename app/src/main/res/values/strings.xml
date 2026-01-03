@@ -84,4 +84,5 @@
     <string name="notification_channel_description">Shows when Unbrick is actively blocking apps</string>
     <string name="notification_locked_title">Apps Blocked</string>
     <string name="notification_locked_text">Tap your NFC tag to unlock</string>
+    <string name="app_blocked_toast">App blocked by Unbrick</string>
 </resources>

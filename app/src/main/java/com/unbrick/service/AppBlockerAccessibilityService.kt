@@ -9,11 +9,13 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.unbrick.MainActivity
 import com.unbrick.R
 import com.unbrick.UnbrickApplication
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collectLatest
 
 /**
  * Accessibility service that monitors app launches and blocks restricted apps
@@ -49,10 +51,19 @@ class AppBlockerAccessibilityService : AccessibilityService() {
             notificationTimeout = 100
         }
 
-        // Start as foreground service to reduce chances of being killed
-        startForegroundServiceNotification()
-
         isRunning = true
+
+        // Observe lock state to show/hide notification
+        serviceScope.launch {
+            repository.lockState.collectLatest { lockState ->
+                val isLocked = lockState?.isLocked ?: false
+                if (isLocked) {
+                    startForegroundServiceNotification()
+                } else {
+                    stopForegroundNotification()
+                }
+            }
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -101,6 +112,15 @@ class AppBlockerAccessibilityService : AccessibilityService() {
         lastBlockedPackage = packageName
         lastBlockTime = now
 
+        // Show toast on main thread
+        android.os.Handler(applicationContext.mainLooper).post {
+            Toast.makeText(
+                applicationContext,
+                getString(R.string.app_blocked_toast),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
         // Navigate to home screen
         performGlobalAction(GLOBAL_ACTION_HOME)
     }
@@ -142,6 +162,15 @@ class AppBlockerAccessibilityService : AccessibilityService() {
             )
         } else {
             startForeground(UnbrickApplication.NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun stopForegroundNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
         }
     }
 
