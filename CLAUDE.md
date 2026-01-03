@@ -13,6 +13,42 @@ APK output: `app/build/outputs/apk/debug/app-debug.apk`
 
 **Requirements:** JDK 21, Android SDK 34
 
+## Testing
+
+```bash
+./gradlew test                      # Unit tests (JVM, no device needed)
+./gradlew connectedDebugAndroidTest # Instrumented tests (requires emulator/device)
+```
+
+### Test Structure
+
+| Type | Location | What it tests |
+|------|----------|---------------|
+| Unit tests | `app/src/test/` | Repository business logic with mocked DAOs |
+| Instrumented tests | `app/src/androidTest/` | DAO operations against real Room database |
+
+### WSL Setup for Instrumented Tests
+
+If developing in WSL with an emulator running on Windows:
+
+1. On Windows, start ADB server on all interfaces:
+   ```powershell
+   adb kill-server
+   adb -a nodaemon server start
+   ```
+
+2. In WSL, forward port 5037 to Windows (requires `socat`):
+   ```bash
+   # Get Windows host IP from /etc/resolv.conf nameserver line
+   socat TCP-LISTEN:5037,fork,reuseaddr TCP:$(grep nameserver /etc/resolv.conf | awk '{print $2}'):5037 &
+   ```
+
+3. Verify connection and run tests:
+   ```bash
+   adb devices                         # Should show emulator-5554
+   ./gradlew connectedDebugAndroidTest
+   ```
+
 ## Architecture Overview
 
 ### Core Mechanism
