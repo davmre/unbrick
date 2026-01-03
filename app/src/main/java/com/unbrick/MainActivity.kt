@@ -97,6 +97,11 @@ class MainActivity : AppCompatActivity() {
             deviceAdminLauncher.launch(intent)
         }
 
+        // Enable notifications button
+        binding.btnEnableNotifications.setOnClickListener {
+            PermissionHelper.openNotificationSettings(this)
+        }
+
         // Emergency unlock button
         binding.btnEmergencyUnlock.setOnClickListener {
             handleEmergencyUnlock()
@@ -342,6 +347,16 @@ class MainActivity : AppCompatActivity() {
         } else {
             binding.deviceAdminStatusIcon.setImageResource(R.drawable.ic_warning)
             binding.btnEnableDeviceAdmin.visibility = View.VISIBLE
+        }
+
+        // Notifications section
+        val notificationsEnabled = PermissionHelper.areNotificationsEnabled(this)
+        if (notificationsEnabled) {
+            binding.notificationStatusIcon.setImageResource(R.drawable.ic_check)
+            binding.btnEnableNotifications.visibility = View.GONE
+        } else {
+            binding.notificationStatusIcon.setImageResource(R.drawable.ic_warning)
+            binding.btnEnableNotifications.visibility = View.VISIBLE
         }
 
         // NFC section

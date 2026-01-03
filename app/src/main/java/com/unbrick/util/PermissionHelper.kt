@@ -4,8 +4,10 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.app.NotificationManagerCompat
 import com.unbrick.receiver.UnbrickDeviceAdminReceiver
 import com.unbrick.service.AppBlockerAccessibilityService
 
@@ -66,6 +68,33 @@ object PermissionHelper {
      */
     fun openNfcSettings(context: Context) {
         val intent = Intent(Settings.ACTION_NFC_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
+    /**
+     * Check if notifications are enabled for the app
+     */
+    fun areNotificationsEnabled(context: Context): Boolean {
+        return NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
+    /**
+     * Open app notification settings
+     */
+    fun openNotificationSettings(context: Context) {
+        val intent = Intent().apply {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                    action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                }
+                else -> {
+                    action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                    data = Uri.parse("package:${context.packageName}")
+                }
+            }
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)

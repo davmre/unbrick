@@ -67,6 +67,7 @@
     <string name="setup_complete">Setup Complete!</string>
     <string name="enable_accessibility">Enable Accessibility</string>
     <string name="enable_device_admin">Enable Device Admin</string>
+    <string name="enable_notifications">Enable Notifications</string>
     <string name="next">Next</string>
     <string name="skip">Skip</string>
     <string name="done">Done</string>
