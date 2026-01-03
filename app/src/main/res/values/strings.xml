@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Unbrick</string>
+
+    <!-- Accessibility Service -->
+    <string name="accessibility_service_description">Unbrick uses accessibility to detect when blocked apps are opened and redirect you to the home screen. This helps you stay focused by preventing access to distracting apps until you tap your NFC tag.</string>
+
+    <!-- Device Admin -->
+    <string name="device_admin_description">Enable device admin to prevent Unbrick from being uninstalled while restrictions are active. This ensures you can\'t bypass the block by simply uninstalling the app.</string>
+
+    <!-- Main Screen -->
+    <string name="status_locked">Locked</string>
+    <string name="status_unlocked">Unlocked</string>
+    <string name="tap_nfc_to_toggle">Tap your NFC tag to toggle</string>
+    <string name="no_tag_registered">No NFC tag registered</string>
+    <string name="register_tag">Register NFC Tag</string>
+    <string name="manage_apps">Manage Blocked Apps</string>
+    <string name="settings">Settings</string>
+
+    <!-- NFC Registration -->
+    <string name="register_tag_title">Register NFC Tag</string>
+    <string name="register_tag_instruction">Hold your NFC tag against the back of your phone to register it.</string>
+    <string name="tag_registered">NFC tag registered successfully!</string>
+    <string name="tag_already_registered">This tag is already registered.</string>
+
+    <!-- App Selection -->
+    <string name="select_apps_title">Select Apps to Block</string>
+    <string name="mode_blocklist">Blocklist Mode</string>
+    <string name="mode_allowlist">Allowlist Mode</string>
+    <string name="mode_blocklist_desc">Block selected apps when locked</string>
+    <string name="mode_allowlist_desc">Only allow selected apps when locked</string>
+
+    <!-- Emergency Unlock -->
+    <string name="emergency_unlock">Emergency Unlock</string>
+    <string name="emergency_unlock_description">Request an emergency unlock if you\'ve lost your NFC tag. The unlock will be available after the delay period.</string>
+    <string name="request_unlock">Request Emergency Unlock</string>
+    <string name="unlock_requested">Unlock requested. Available in %s</string>
+    <string name="unlock_available">Emergency unlock is now available</string>
+    <string name="perform_unlock">Unlock Now</string>
+    <string name="cancel_request">Cancel Request</string>
+
+    <!-- Setup -->
+    <string name="setup_welcome">Welcome to Unbrick</string>
+    <string name="setup_step_1">Step 1: Enable Accessibility Service</string>
+    <string name="setup_step_2">Step 2: Enable Device Admin</string>
+    <string name="setup_step_3">Step 3: Register NFC Tag</string>
+    <string name="setup_step_4">Step 4: Select Apps to Block</string>
+    <string name="setup_complete">Setup Complete!</string>
+    <string name="enable_accessibility">Enable Accessibility</string>
+    <string name="enable_device_admin">Enable Device Admin</string>
+    <string name="next">Next</string>
+    <string name="skip">Skip</string>
+    <string name="done">Done</string>
+
+    <!-- Settings -->
+    <string name="unlock_delay">Emergency Unlock Delay</string>
+    <string name="unlock_delay_1h">1 hour</string>
+    <string name="unlock_delay_6h">6 hours</string>
+    <string name="unlock_delay_12h">12 hours</string>
+    <string name="unlock_delay_24h">24 hours</string>
+    <string name="unlock_delay_48h">48 hours</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">Unbrick Status</string>
+    <string name="notification_channel_description">Shows when Unbrick is actively blocking apps</string>
+    <string name="notification_locked_title">Apps Blocked</string>
+    <string name="notification_locked_text">Tap your NFC tag to unlock</string>
+</resources>

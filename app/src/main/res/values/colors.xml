@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="locked_background">#FFEBEE</color>
+    <color name="unlocked_background">#E8F5E9</color>
+
+    <color name="seed">#6750A4</color>
+</resources>
