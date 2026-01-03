@@ -26,4 +26,7 @@ interface AppSettingsDao {
 
     @Query("UPDATE app_settings SET setupCompleted = :completed WHERE id = 1")
     suspend fun setSetupCompleted(completed: Boolean)
+
+    @Query("UPDATE app_settings SET blockSettingsWhenLocked = :block WHERE id = 1")
+    suspend fun setBlockSettingsWhenLocked(block: Boolean)
 }

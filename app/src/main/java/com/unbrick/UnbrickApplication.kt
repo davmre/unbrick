@@ -36,6 +36,7 @@ class UnbrickApplication : Application() {
         // Ensure default states exist and clean up orphans
         applicationScope.launch {
             repository.ensureLockStateExists()
+            repository.ensureSettingsExist()
             repository.deleteEmptyProfiles()
         }
     }

@@ -19,6 +19,7 @@ import com.unbrick.databinding.ActivityMainBinding
 import com.unbrick.nfc.NfcHandler
 import com.unbrick.service.AppBlockerAccessibilityService
 import com.unbrick.ui.apps.AppSelectionActivity
+import com.unbrick.ui.settings.SettingsActivity
 import com.unbrick.util.PermissionHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -133,6 +134,11 @@ class MainActivity : AppCompatActivity() {
             createNewProfile()
         }
 
+        // Settings button
+        binding.btnSettings.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
         // Debug toggle lock button (only in debug builds on emulator or when NFC unavailable)
         if (BuildConfig.DEBUG && (PermissionHelper.isEmulator() || !nfcHandler.isNfcAvailable)) {
             binding.btnDebugToggleLock.visibility = View.VISIBLE
@@ -207,7 +213,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateProfileUIEnabledState() {
-        // Disable profile selection when locked
+        // Disable profile selection and settings when locked
         val enabled = !isLocked && profiles.isNotEmpty()
         binding.profileDropdown.isEnabled = enabled
         binding.profileDropdownLayout.isEnabled = enabled
@@ -215,6 +221,8 @@ class MainActivity : AppCompatActivity() {
         binding.profileCard.alpha = if (isLocked) 0.5f else 1.0f
         binding.noProfilesCard.alpha = if (isLocked) 0.5f else 1.0f
         binding.btnCreateFirstProfile.isEnabled = !isLocked
+        binding.btnSettings.isEnabled = !isLocked
+        binding.btnSettings.alpha = if (isLocked) 0.5f else 1.0f
     }
 
     private fun updateLockUI(isLocked: Boolean) {

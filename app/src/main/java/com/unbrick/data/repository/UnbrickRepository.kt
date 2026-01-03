@@ -227,6 +227,11 @@ class UnbrickRepository(
         appSettingsDao.setUnlockDelay(delayMs)
     }
 
+    suspend fun setBlockSettingsWhenLocked(block: Boolean) {
+        ensureSettingsExist()
+        appSettingsDao.setBlockSettingsWhenLocked(block)
+    }
+
     suspend fun setSetupCompleted(completed: Boolean) {
         ensureSettingsExist()
         appSettingsDao.setSetupCompleted(completed)
@@ -242,7 +247,7 @@ class UnbrickRepository(
         return isLocked && settings.blockSettingsWhenLocked
     }
 
-    private suspend fun ensureSettingsExist() {
+    suspend fun ensureSettingsExist() {
         if (appSettingsDao.getSettingsSync() == null) {
             appSettingsDao.insert(AppSettings())
         }

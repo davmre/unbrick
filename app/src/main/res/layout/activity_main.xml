@@ -15,15 +15,38 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- App Title -->
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- App Title Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="24dp"
-                android:text="Unbrick"
-                android:textSize="28sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- Spacer for centering -->
+                <View
+                    android:layout_width="48dp"
+                    android:layout_height="48dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Unbrick"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSettings"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="@string/settings"
+                    app:icon="@drawable/ic_settings"
+                    app:iconTint="?attr/colorOnSurface" />
+
+            </LinearLayout>
 
             <!-- Lock Status Card -->
             <com.google.android.material.card.MaterialCardView
