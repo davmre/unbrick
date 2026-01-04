@@ -71,23 +71,18 @@ class AppBlockerAccessibilityService : AccessibilityService() {
 
         val packageName = event.packageName?.toString() ?: return
 
-        // Don't block our own app
+        // Don't block our own app or system UI
         if (packageName == applicationContext.packageName) return
-
-        // Don't block system UI elements
         if (packageName in SYSTEM_PACKAGES) return
 
         serviceScope.launch {
             try {
-                val isLocked = repository.isLocked()
-                if (!isLocked) return@launch
+                if (!repository.isLocked()) return@launch
 
                 // Check if we should block settings access
-                if (packageName in settingsPackages) {
-                    if (repository.shouldBlockSettings()) {
-                        blockApp(packageName)
-                        return@launch
-                    }
+                if (packageName in settingsPackages && repository.shouldBlockSettings()) {
+                    blockApp(packageName)
+                    return@launch
                 }
 
                 // Check if this specific app is blocked

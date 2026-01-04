@@ -26,6 +26,27 @@ APK output: `app/build/outputs/apk/debug/app-debug.apk`
 |------|----------|---------------|
 | Unit tests | `app/src/test/` | Repository business logic with mocked DAOs |
 | Instrumented tests | `app/src/androidTest/` | DAO operations against real Room database |
+| E2E tests | `app/src/androidTest/.../e2e/` | Full app blocking flow with accessibility service |
+
+### E2E Tests for App Blocking
+
+E2E tests in `app/src/androidTest/java/com/unbrick/e2e/` verify the full blocking flow:
+
+```bash
+# Run E2E tests
+./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.package=com.unbrick.e2e
+```
+
+The tests use `FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES` to allow the accessibility service to run during instrumented tests (by default, UiAutomation suppresses other accessibility services).
+
+**Test cases:**
+1. `blockedAppRedirectsToHomeWhenLocked` - Blocklist mode blocks apps when locked
+2. `appOpensNormallyWhenUnlocked` - Apps open normally when unlocked
+3. `allowlistModeBlocksOtherApps` - Allowlist mode blocks apps not in the list
+4. `allowlistModeAllowsSelectedApps` - Allowlist mode allows apps in the list
+5. `lockUnlockCycleWorksCorrectly` - Full lock/unlock cycle works correctly
+
+Tests will be **skipped** (not failed) if the accessibility service fails to start on a particular device/emulator.
 
 ### WSL Setup for Instrumented Tests
 
