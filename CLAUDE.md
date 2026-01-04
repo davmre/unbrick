@@ -37,8 +37,6 @@ E2E tests in `app/src/androidTest/java/com/unbrick/e2e/` verify the full blockin
 ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.package=com.unbrick.e2e
 ```
 
-The tests use `FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES` to allow the accessibility service to run during instrumented tests (by default, UiAutomation suppresses other accessibility services).
-
 **Test cases:**
 1. `blockedAppRedirectsToHomeWhenLocked` - Blocklist mode blocks apps when locked
 2. `appOpensNormallyWhenUnlocked` - Apps open normally when unlocked
@@ -77,6 +75,7 @@ If developing in WSL with an emulator running on Windows:
 2. **Accessibility Service** - Monitors foreground app changes. When locked, redirects user to home screen if they open a blocked app.
 3. **Device Admin** - Optional uninstall protection to prevent bypassing the block.
 4. **Profiles** - Multiple named profiles (e.g., "Work Mode", "Focus"), each with its own app list and blocking mode.
+5. **Notification blocking** - while in locked mode, snoozes notifications from blocked apps.
 
 ### Data Flow
 ```
