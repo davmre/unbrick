@@ -85,6 +85,7 @@ abstract class BaseE2ETest {
         database = AppDatabase.getDatabase(context)
 
         repository = UnbrickRepository(
+            database,
             database.blockingProfileDao(),
             database.profileAppDao(),
             database.lockStateDao(),

@@ -10,7 +10,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.unbrick.R
 import com.unbrick.UnbrickApplication
@@ -118,9 +120,18 @@ class AppSelectionActivity : AppCompatActivity() {
         return true
     }
 
-    private inner class AppListAdapter(
+    /**
+     * Wrapper that combines app info with selection state for proper DiffUtil comparison.
+     */
+    private data class AppListItem(
+        val app: InstalledApp,
+        val isSelected: Boolean,
+        val isAllowlistMode: Boolean
+    )
+
+    private class AppListAdapter(
         private val onAppToggled: (InstalledApp, Boolean) -> Unit
-    ) : RecyclerView.Adapter<AppListAdapter.ViewHolder>() {
+    ) : ListAdapter<AppListItem, AppListAdapter.ViewHolder>(AppDiffCallback()) {
 
         private var apps: List<InstalledApp> = emptyList()
         private var selected: Set<String> = emptySet()
@@ -130,40 +141,47 @@ class AppSelectionActivity : AppCompatActivity() {
             this.apps = apps
             this.selected = selected
             this.allowlistMode = isAllowlistMode
-            notifyDataSetChanged()
+            submitList(buildList())
         }
 
         fun updateSelectedPackages(selected: Set<String>) {
             this.selected = selected
-            notifyDataSetChanged()
+            submitList(buildList())
+        }
+
+        private fun buildList(): List<AppListItem> {
+            return apps.map { app ->
+                AppListItem(app, app.packageName in selected, allowlistMode)
+            }
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_app, parent, false)
-            return ViewHolder(view)
+            return ViewHolder(view, onAppToggled)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val app = apps[position]
-            holder.bind(app, app.packageName in selected)
+            holder.bind(getItem(position))
         }
 
-        override fun getItemCount() = apps.size
-
-        inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        class ViewHolder(
+            itemView: View,
+            private val onAppToggled: (InstalledApp, Boolean) -> Unit
+        ) : RecyclerView.ViewHolder(itemView) {
             private val icon: ImageView = itemView.findViewById(R.id.appIcon)
             private val name: TextView = itemView.findViewById(R.id.appName)
             private val packageName: TextView = itemView.findViewById(R.id.appPackage)
             private val checkbox: CheckBox = itemView.findViewById(R.id.appCheckbox)
 
-            fun bind(app: InstalledApp, isSelected: Boolean) {
+            fun bind(item: AppListItem) {
+                val app = item.app
                 app.icon?.let { icon.setImageDrawable(it) }
                 name.text = app.appName
                 packageName.text = app.packageName
 
                 checkbox.setOnCheckedChangeListener(null)
-                checkbox.isChecked = isSelected
+                checkbox.isChecked = item.isSelected
                 checkbox.setOnCheckedChangeListener { _, checked ->
                     onAppToggled(app, checked)
                 }
@@ -173,8 +191,21 @@ class AppSelectionActivity : AppCompatActivity() {
                 }
 
                 // Gray = blocked: allowlist grays unselected, blocklist grays selected
-                val isBlocked = if (allowlistMode) !isSelected else isSelected
+                val isBlocked = if (item.isAllowlistMode) !item.isSelected else item.isSelected
                 itemView.alpha = if (isBlocked) 0.4f else 1.0f
+            }
+        }
+
+        private class AppDiffCallback : DiffUtil.ItemCallback<AppListItem>() {
+            override fun areItemsTheSame(oldItem: AppListItem, newItem: AppListItem): Boolean {
+                return oldItem.app.packageName == newItem.app.packageName
+            }
+
+            override fun areContentsTheSame(oldItem: AppListItem, newItem: AppListItem): Boolean {
+                return oldItem.app.packageName == newItem.app.packageName &&
+                        oldItem.app.appName == newItem.app.appName &&
+                        oldItem.isSelected == newItem.isSelected &&
+                        oldItem.isAllowlistMode == newItem.isAllowlistMode
             }
         }
     }

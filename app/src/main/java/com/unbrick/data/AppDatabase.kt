@@ -17,7 +17,7 @@ import com.unbrick.data.model.*
         NfcTagInfo::class,
         AppSettings::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -51,6 +51,7 @@ abstract class AppDatabase : RoomDatabase() {
                         createdAt INTEGER NOT NULL
                     )
                 """)
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_blocking_profiles_isActive ON blocking_profiles(isActive)")
 
                 // 2. Get existing blocking mode from app_settings (if exists)
                 var existingMode = "BLOCKLIST"
@@ -115,6 +116,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration from v2 to v3:
+         * - Adds index on blocking_profiles.isActive for faster active profile queries
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_blocking_profiles_isActive ON blocking_profiles(isActive)")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -122,7 +133,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "unbrick_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance
