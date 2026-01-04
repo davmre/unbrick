@@ -19,6 +19,7 @@ class UnbrickApplication : Application() {
 
     val repository by lazy {
         UnbrickRepository(
+            database,
             database.blockingProfileDao(),
             database.profileAppDao(),
             database.lockStateDao(),

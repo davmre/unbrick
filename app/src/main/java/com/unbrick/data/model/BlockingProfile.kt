@@ -1,9 +1,13 @@
 package com.unbrick.data.model
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "blocking_profiles")
+@Entity(
+    tableName = "blocking_profiles",
+    indices = [Index("isActive")]
+)
 data class BlockingProfile(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

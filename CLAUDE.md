@@ -20,12 +20,18 @@ APK output: `app/build/outputs/apk/debug/app-debug.apk`
 ./gradlew connectedDebugAndroidTest # Instrumented tests (requires emulator/device)
 ```
 
+**Note:** When adding new test classes or modifying source code, you may need to reinstall both APKs for instrumented tests to pick up changes:
+```bash
+./gradlew installDebug installDebugAndroidTest
+```
+
 ### Test Structure
 
 | Type | Location | What it tests |
 |------|----------|---------------|
 | Unit tests | `app/src/test/` | Repository business logic with mocked DAOs |
-| Instrumented tests | `app/src/androidTest/` | DAO operations against real Room database |
+| DAO tests | `app/src/androidTest/.../dao/` | DAO operations against real Room database |
+| Repository integration | `app/src/androidTest/.../repository/` | Transactional repository methods (requires real DB) |
 | E2E tests | `app/src/androidTest/.../e2e/` | Full app blocking flow with accessibility service |
 
 ### E2E Tests for App Blocking

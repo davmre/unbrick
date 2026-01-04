@@ -51,7 +51,8 @@ class NotificationBlockerService : NotificationListenerService() {
 
         serviceScope.launch {
             try {
-                if (repository.isLocked() && repository.isAppBlocked(sbn.packageName)) {
+                // Atomic check of lock state + app blocked status to prevent race conditions
+                if (repository.shouldBlockApp(sbn.packageName)) {
                     snoozeNotification(sbn.key, snoozeDurationMs)
                     Log.d(TAG, "Snoozed notification from ${sbn.packageName}")
                 }

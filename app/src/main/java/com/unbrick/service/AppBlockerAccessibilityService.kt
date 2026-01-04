@@ -27,8 +27,10 @@ class AppBlockerAccessibilityService : AccessibilityService() {
     private val repository by lazy { UnbrickApplication.getInstance().repository }
 
     // Track last blocked package to prevent rapid repeated blocks
-    private var lastBlockedPackage: String? = null
-    private var lastBlockTime: Long = 0
+    // Using lock object for thread-safe access from multiple coroutines
+    private val blockLock = Any()
+    @Volatile private var lastBlockedPackage: String? = null
+    @Volatile private var lastBlockTime: Long = 0
     private val blockCooldownMs = 500L
 
     // Settings package names to potentially block
@@ -77,16 +79,14 @@ class AppBlockerAccessibilityService : AccessibilityService() {
 
         serviceScope.launch {
             try {
-                if (!repository.isLocked()) return@launch
-
-                // Check if we should block settings access
-                if (packageName in settingsPackages && repository.shouldBlockSettings()) {
+                // Check if we should block settings access (atomic check of lock + settings)
+                if (packageName in settingsPackages && repository.shouldBlockSettingsApp()) {
                     blockApp(packageName)
                     return@launch
                 }
 
-                // Check if this specific app is blocked
-                if (repository.isAppBlocked(packageName)) {
+                // Check if this specific app is blocked (atomic check of lock + app status)
+                if (repository.shouldBlockApp(packageName)) {
                     blockApp(packageName)
                 }
             } catch (e: Exception) {
@@ -98,14 +98,17 @@ class AppBlockerAccessibilityService : AccessibilityService() {
     private fun blockApp(packageName: String) {
         val now = System.currentTimeMillis()
 
-        // Prevent rapid repeated blocks of the same app
-        if (packageName == lastBlockedPackage && now - lastBlockTime < blockCooldownMs) {
-            return
+        // Thread-safe check and update of cooldown state
+        synchronized(blockLock) {
+            // Prevent rapid repeated blocks of the same app
+            if (packageName == lastBlockedPackage && now - lastBlockTime < blockCooldownMs) {
+                return
+            }
+            lastBlockedPackage = packageName
+            lastBlockTime = now
         }
 
         Log.d(TAG, "Blocking app: $packageName")
-        lastBlockedPackage = packageName
-        lastBlockTime = now
 
         // Show toast on main thread
         android.os.Handler(applicationContext.mainLooper).post {

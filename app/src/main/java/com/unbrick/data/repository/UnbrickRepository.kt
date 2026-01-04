@@ -1,17 +1,25 @@
 package com.unbrick.data.repository
 
+import androidx.room.withTransaction
+import com.unbrick.data.AppDatabase
 import com.unbrick.data.dao.*
 import com.unbrick.data.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class UnbrickRepository(
+    private val database: AppDatabase,
     private val blockingProfileDao: BlockingProfileDao,
     private val profileAppDao: ProfileAppDao,
     private val lockStateDao: LockStateDao,
     private val nfcTagDao: NfcTagDao,
     private val appSettingsDao: AppSettingsDao
 ) {
+    // Mutex to prevent race conditions in profile deletion
+    private val profileMutex = Mutex()
+
     // ==================== Profile Management ====================
 
     val allProfiles: Flow<List<BlockingProfile>> = blockingProfileDao.getAllProfiles()
@@ -44,21 +52,24 @@ class UnbrickRepository(
         blockingProfileDao.updateBlockingMode(profileId, mode.name)
     }
 
-    suspend fun deleteProfile(profileId: Long): Boolean {
-        val count = blockingProfileDao.getProfileCount()
-        if (count <= 1) return false // Cannot delete last profile
+    suspend fun deleteProfile(profileId: Long): Boolean = profileMutex.withLock {
+        database.withTransaction {
+            val count = blockingProfileDao.getProfileCount()
+            if (count <= 1) return@withTransaction false // Cannot delete last profile
 
-        val wasActive = blockingProfileDao.getProfileById(profileId)?.isActive ?: false
-        blockingProfileDao.deleteById(profileId)
+            val wasActive = blockingProfileDao.getProfileById(profileId)?.isActive ?: false
+            blockingProfileDao.deleteById(profileId)
 
-        // If deleted profile was active, activate another
-        if (wasActive) {
-            val remainingProfiles = blockingProfileDao.getAllProfilesSync()
-            if (remainingProfiles.isNotEmpty()) {
-                setActiveProfile(remainingProfiles.first().id)
+            // If deleted profile was active, activate another
+            if (wasActive) {
+                val remainingProfiles = blockingProfileDao.getAllProfilesSync()
+                if (remainingProfiles.isNotEmpty()) {
+                    blockingProfileDao.setActiveProfile(remainingProfiles.first().id)
+                    appSettingsDao.setActiveProfileId(remainingProfiles.first().id)
+                }
             }
+            true
         }
-        return true
     }
 
     suspend fun duplicateProfile(profileId: Long, newName: String): Long {
@@ -115,6 +126,38 @@ class UnbrickRepository(
             BlockingMode.BLOCKLIST -> isInList
             BlockingMode.ALLOWLIST -> !isInList
         }
+    }
+
+    /**
+     * Atomically checks if locked AND if the app should be blocked.
+     * Uses a database transaction to prevent race conditions where lock state
+     * changes between checking isLocked() and isAppBlocked().
+     */
+    suspend fun shouldBlockApp(packageName: String): Boolean = database.withTransaction {
+        val isLocked = lockStateDao.isLocked() ?: false
+        if (!isLocked) return@withTransaction false
+
+        val activeProfile = blockingProfileDao.getActiveProfileSync()
+            ?: return@withTransaction false
+        val mode = BlockingMode.valueOf(activeProfile.blockingMode)
+        val isInList = profileAppDao.isAppInActiveProfile(packageName)
+
+        when (mode) {
+            BlockingMode.BLOCKLIST -> isInList
+            BlockingMode.ALLOWLIST -> !isInList
+        }
+    }
+
+    /**
+     * Atomically checks if locked AND if settings should be blocked.
+     * Uses a database transaction to prevent race conditions.
+     */
+    suspend fun shouldBlockSettingsApp(): Boolean = database.withTransaction {
+        val isLocked = lockStateDao.isLocked() ?: false
+        if (!isLocked) return@withTransaction false
+
+        val settings = appSettingsDao.getSettingsSync() ?: return@withTransaction false
+        settings.blockSettingsWhenLocked
     }
 
     // ==================== Lock State ====================
@@ -266,16 +309,16 @@ class UnbrickRepository(
      * Called on app startup to remove profiles from crashed/abandoned create flows.
      * Won't delete the last remaining profile to avoid leaving the user with none.
      */
-    suspend fun deleteEmptyProfiles() {
-        val profiles = blockingProfileDao.getAllProfilesSync()
-        if (profiles.size <= 1) return // Don't delete if only one profile exists
+    suspend fun deleteEmptyProfiles() = profileMutex.withLock {
+        database.withTransaction {
+            val profiles = blockingProfileDao.getAllProfilesSync()
+            if (profiles.size <= 1) return@withTransaction // Don't delete if only one profile exists
 
-        for (profile in profiles) {
-            val appCount = profileAppDao.getAppCountForProfile(profile.id)
-            if (appCount == 0 && profiles.size > 1) {
-                // Delete empty profile, but ensure we keep at least one
+            for (profile in profiles) {
+                val appCount = profileAppDao.getAppCountForProfile(profile.id)
+                // Re-check count inside loop since we may have deleted profiles
                 val remainingCount = blockingProfileDao.getProfileCount()
-                if (remainingCount > 1) {
+                if (appCount == 0 && remainingCount > 1) {
                     blockingProfileDao.deleteById(profile.id)
                 }
             }
