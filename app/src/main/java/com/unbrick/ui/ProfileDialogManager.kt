@@ -82,9 +82,8 @@ class ProfileDialogManager(
         val btnConfigureApps = dialogView.findViewById<MaterialButton>(R.id.btnConfigureApps)
         val appCountText = dialogView.findViewById<TextView>(R.id.appCountText)
 
-        // Pre-fill with current values
+        // Pre-fill with current values (hint comes from TextInputLayout in XML)
         nameInput.setText(if (isNew) "" else profile.name)
-        nameInput.hint = context.getString(R.string.profile_name_hint)
         val currentMode = BlockingMode.valueOf(profile.blockingMode)
         modeToggle.check(if (currentMode == BlockingMode.BLOCKLIST) R.id.btnBlocklist else R.id.btnAllowlist)
 

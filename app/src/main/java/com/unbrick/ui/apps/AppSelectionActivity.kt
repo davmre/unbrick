@@ -98,19 +98,14 @@ class AppSelectionActivity : AppCompatActivity() {
                 InstalledAppsHelper.getLaunchableApps(this@AppSelectionActivity)
             }
 
-            // Get currently selected apps for this profile
-            val profileApps = repository.getAppsForProfileSync(profileId)
-            selectedPackages = profileApps.map { it.packageName }.toSet()
+            // Set apps and mode on adapter (but don't submit list yet)
+            adapter.setAppsAndMode(installedApps, isAllowlistMode)
 
-            // Update adapter
-            adapter.setApps(installedApps, selectedPackages, isAllowlistMode)
-
-            binding.progressBar.visibility = View.GONE
-
-            // Observe changes for this profile
+            // Observe changes for this profile - Flow's initial emission will trigger the first submitList
             repository.getAppsForProfile(profileId).collect { apps ->
                 selectedPackages = apps.map { it.packageName }.toSet()
                 adapter.updateSelectedPackages(selectedPackages)
+                binding.progressBar.visibility = View.GONE
             }
         }
     }
@@ -137,11 +132,11 @@ class AppSelectionActivity : AppCompatActivity() {
         private var selected: Set<String> = emptySet()
         private var allowlistMode: Boolean = false
 
-        fun setApps(apps: List<InstalledApp>, selected: Set<String>, isAllowlistMode: Boolean) {
+        fun setAppsAndMode(apps: List<InstalledApp>, isAllowlistMode: Boolean) {
             this.apps = apps
-            this.selected = selected
             this.allowlistMode = isAllowlistMode
-            submitList(buildList())
+            // Don't submit list here - let updateSelectedPackages do the single submitList
+            // to avoid race conditions with double async submissions
         }
 
         fun updateSelectedPackages(selected: Set<String>) {
