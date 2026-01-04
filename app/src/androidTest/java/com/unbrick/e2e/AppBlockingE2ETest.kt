@@ -51,22 +51,20 @@ class AppBlockingE2ETest : BaseE2ETest() {
             repository.setLocked(true)
         }
 
-        // Wait for accessibility service to pick up state change
-        // Need extra time for cross-process database sync
-        Thread.sleep(3000)
+        // Wait for accessibility service to sync state
+        waitForServiceSync()
 
         // Launch blocked app
         launchExternalApp(testApp.packageName)
 
-        // Wait for potential blocking to occur
-        // The accessibility service needs time to detect the window change and act
-        Thread.sleep(3000)
+        // Wait for blocking to occur (polling-based)
+        val wasBlocked = waitForAppBlocked(timeout = 5000L)
 
         // Verify: should be on home screen (blocked)
         assertTrue(
             "Expected home screen after launching blocked app '${testApp.displayName}', " +
                     "but was on package: ${getCurrentPackage()}",
-            isOnHomeScreen()
+            wasBlocked
         )
     }
 
@@ -90,20 +88,23 @@ class AppBlockingE2ETest : BaseE2ETest() {
             repository.setLocked(false) // Explicitly unlocked
         }
 
-        Thread.sleep(2000)
+        // Wait for accessibility service to sync state
+        waitForServiceSync()
 
         // Launch the app
         launchExternalApp(testApp.packageName)
 
-        // Wait for app to open and stabilize
-        Thread.sleep(3000)
+        // Wait for app to open
+        waitForPackage(testApp.packageName)
+
+        // Confirm app stays open for a while (not blocked)
+        val stayedOpen = confirmAppStaysOpen(testApp.packageName, duration = 2000L)
 
         // Verify: app should stay open
-        assertEquals(
+        assertTrue(
             "Expected ${testApp.packageName} to stay open when unlocked, " +
                     "but was on: ${getCurrentPackage()}",
-            testApp.packageName,
-            getCurrentPackage()
+            stayedOpen
         )
     }
 
@@ -127,18 +128,20 @@ class AppBlockingE2ETest : BaseE2ETest() {
             repository.setLocked(true)
         }
 
-        Thread.sleep(3000)
+        // Wait for accessibility service to sync state
+        waitForServiceSync()
 
         // Launch app that's NOT in allowlist
         launchExternalApp(testApp.packageName)
 
-        Thread.sleep(3000)
+        // Wait for blocking to occur (polling-based)
+        val wasBlocked = waitForAppBlocked(timeout = 5000L)
 
         // Verify: should be blocked (redirected to home)
         assertTrue(
             "App not in allowlist should be blocked. Expected home screen, " +
                     "but was on: ${getCurrentPackage()}",
-            isOnHomeScreen()
+            wasBlocked
         )
     }
 
@@ -162,19 +165,23 @@ class AppBlockingE2ETest : BaseE2ETest() {
             repository.setLocked(true)
         }
 
-        Thread.sleep(3000)
+        // Wait for accessibility service to sync state
+        waitForServiceSync()
 
         // Launch allowed app
         launchExternalApp(testApp.packageName)
 
-        Thread.sleep(3000)
+        // Wait for app to open
+        waitForPackage(testApp.packageName)
+
+        // Confirm app stays open for a while (not blocked)
+        val stayedOpen = confirmAppStaysOpen(testApp.packageName, duration = 2000L)
 
         // Verify: app should stay open (allowed)
-        assertEquals(
+        assertTrue(
             "App in allowlist should be allowed. Expected ${testApp.packageName}, " +
                     "but was on: ${getCurrentPackage()}",
-            testApp.packageName,
-            getCurrentPackage()
+            stayedOpen
         )
     }
 
@@ -199,33 +206,33 @@ class AppBlockingE2ETest : BaseE2ETest() {
 
         // === Phase 1: Lock and verify blocking ===
         runBlocking { repository.setLocked(true) }
-        Thread.sleep(3000)
+        waitForServiceSync()
 
         launchExternalApp(testApp.packageName)
-        Thread.sleep(3000)
-        assertTrue("Phase 1: Should block when locked", isOnHomeScreen())
+        val phase1Blocked = waitForAppBlocked(timeout = 5000L)
+        assertTrue("Phase 1: Should block when locked", phase1Blocked)
 
         // === Phase 2: Unlock and verify app opens ===
         runBlocking { repository.setLocked(false) }
-        Thread.sleep(2000)
+        waitForServiceSync()
 
         launchExternalApp(testApp.packageName)
-        Thread.sleep(3000)
-        assertEquals(
-            "Phase 2: Should allow when unlocked",
-            testApp.packageName,
-            getCurrentPackage()
+        waitForPackage(testApp.packageName)
+        val phase2StayedOpen = confirmAppStaysOpen(testApp.packageName, duration = 2000L)
+        assertTrue(
+            "Phase 2: Should allow when unlocked, but was on: ${getCurrentPackage()}",
+            phase2StayedOpen
         )
 
         // === Phase 3: Lock again and verify blocking resumes ===
         device.pressHome()
-        Thread.sleep(1000)
+        device.waitForIdle()
 
         runBlocking { repository.setLocked(true) }
-        Thread.sleep(3000)
+        waitForServiceSync()
 
         launchExternalApp(testApp.packageName)
-        Thread.sleep(3000)
-        assertTrue("Phase 3: Should block again after re-locking", isOnHomeScreen())
+        val phase3Blocked = waitForAppBlocked(timeout = 5000L)
+        assertTrue("Phase 3: Should block again after re-locking", phase3Blocked)
     }
 }

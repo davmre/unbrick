@@ -257,4 +257,67 @@ abstract class BaseE2ETest {
     protected fun getCurrentPackage(): String {
         return device.currentPackageName
     }
+
+    /**
+     * Wait for the device to be on the home screen (app was blocked).
+     * Uses polling instead of fixed sleep for reliability.
+     *
+     * @param timeout Maximum time to wait in milliseconds
+     * @param pollInterval Time between checks in milliseconds
+     * @return true if home screen was reached within timeout
+     */
+    protected fun waitForHomeScreen(timeout: Long = 5000L, pollInterval: Long = 200L): Boolean {
+        val startTime = System.currentTimeMillis()
+        while (System.currentTimeMillis() - startTime < timeout) {
+            if (isOnHomeScreen()) {
+                return true
+            }
+            Thread.sleep(pollInterval)
+        }
+        return isOnHomeScreen()
+    }
+
+    /**
+     * Wait for an app to be blocked (redirected to home screen).
+     * Convenience wrapper for waitForHomeScreen with clearer intent.
+     */
+    protected fun waitForAppBlocked(timeout: Long = 5000L): Boolean {
+        return waitForHomeScreen(timeout)
+    }
+
+    /**
+     * Confirm that an app stays open for a duration (not blocked).
+     * Used when testing that allowed apps remain accessible.
+     *
+     * @param packageName The package that should stay in foreground
+     * @param duration How long to monitor in milliseconds
+     * @param checkInterval Time between checks in milliseconds
+     * @return true if the app stayed in foreground for the entire duration
+     */
+    protected fun confirmAppStaysOpen(
+        packageName: String,
+        duration: Long = 2000L,
+        checkInterval: Long = 200L
+    ): Boolean {
+        val startTime = System.currentTimeMillis()
+        while (System.currentTimeMillis() - startTime < duration) {
+            if (getCurrentPackage() != packageName) {
+                return false
+            }
+            Thread.sleep(checkInterval)
+        }
+        return getCurrentPackage() == packageName
+    }
+
+    /**
+     * Wait for the accessibility service to process a state change.
+     * This gives the service time to observe the database change and update its state.
+     * Uses shorter polling since we're just waiting for the service, not for blocking action.
+     */
+    protected fun waitForServiceSync(timeout: Long = 2000L) {
+        // The service observes database changes via Flow, so we just need to
+        // wait a bit for the cross-process database sync and Flow collection
+        device.waitForIdle(timeout)
+        Thread.sleep(500) // Small buffer for Flow collection
+    }
 }
