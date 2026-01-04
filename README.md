@@ -2,6 +2,8 @@
 
 An open-source Android app that helps you manage phone addiction by restricting app access until you tap an NFC tag.
 
+Works with any NFC tag your phone can read, including many credit/debit cards, transit cards, key fobs, etc.
+
 ## Features
 
 - **NFC-based locking**: Register any NFC tag to toggle app restrictions
@@ -46,13 +48,13 @@ Note: You may see a "Play Protect" warning since the app isn't from the Play Sto
 5. Select which apps to block/allow
 6. Tap your NFC tag to lock!
 
-## Building
+## Building from source
 
 ```bash
 ./gradlew assembleDebug
 ```
 
-The APK will be at `app/build/outputs/apk/debug/app-debug.apk`
+The APK will be at `app/build/outputs/apk/debug/app-debug.apk`. See `CLAUDE.md` for instructions on running tests.
 
 ## Permissions
 
@@ -63,16 +65,8 @@ The APK will be at `app/build/outputs/apk/debug/app-debug.apk`
 - **Accessibility Service**: Monitor and block app launches
 - **Device Admin**: Prevent uninstallation
 
-## Limitations
-
-- **Safe Mode**: Android's Safe Mode disables third-party services, allowing bypass
-- **ADB**: Users with developer knowledge can disable via ADB commands
-- **Not cryptographic**: The NFC tag ID is not encrypted - physical possession is the barrier
-
-## License
-
-MIT License - See LICENSE file for details
-
 ## Acknowledgments
 
 Inspired by [Brick](https://getbrick.app/), a commercial solution with similar functionality.
+
+All code written by Claude Opus 4.5.
