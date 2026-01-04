@@ -23,6 +23,20 @@ An open-source Android app that helps you manage phone addiction by restricting 
 
 3. **NFC**: Reads the unique ID of any NFC tag. Tapping a registered tag toggles the lock state.
 
+## Installation
+
+Download the latest APK from the [Releases](../../releases) page.
+
+### Sideloading on Android
+
+1. On your Android device, go to **Settings > Security** (or **Settings > Apps > Special access**)
+2. Enable **Install unknown apps** for your browser or file manager
+3. Download the APK and open it
+4. Tap **Install** when prompted
+5. After installation, you can disable "Install unknown apps" for security
+
+Note: You may see a "Play Protect" warning since the app isn't from the Play Store. Tap **Install anyway** to proceed.
+
 ## Setup
 
 1. Install the APK
