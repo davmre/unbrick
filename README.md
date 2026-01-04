@@ -1,8 +1,8 @@
 # Unbrick
 
-An open-source Android app that helps you manage phone addiction by restricting app access until you tap an NFC tag. Works with any NFC tag your phone can read, including many credit/debit cards, transit cards, key fobs, etc.
-
 <img src="unbrick_screenshot.png" alt="screenshot" width="25%">
+
+An open-source Android app that helps you manage phone addiction by restricting app access until you tap an NFC tag. Works with any NFC tag your phone can read, including many credit/debit cards, transit cards, key fobs, etc.
 
 ## Features
 
@@ -16,14 +16,6 @@ An open-source Android app that helps you manage phone addiction by restricting 
   - Settings app can be blocked to prevent disabling protections
 - **Emergency unlock**: Time-delayed unlock (default 1 hour) if you lose your NFC tag
 - **Persistence**: Lock state survives reboots
-
-## How It Works
-
-1. **Accessibility Service**: Monitors which apps are launched. When a restricted app opens while locked, it immediately sends you back to the home screen.
-
-2. **Device Admin**: Prevents the app from being uninstalled while restrictions are active.
-
-3. **NFC**: Reads the unique ID of any NFC tag. Tapping a registered tag toggles the lock state.
 
 ## Installation
 
@@ -54,16 +46,9 @@ Note: You may see a "Play Protect" warning since the app isn't from the Play Sto
 ./gradlew assembleDebug
 ```
 
-The APK will be at `app/build/outputs/apk/debug/app-debug.apk`. See `CLAUDE.md` for instructions on running tests.
+The APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Permissions
-
-- **NFC**: Read NFC tags
-- **QUERY_ALL_PACKAGES**: List installed apps for selection
-- **RECEIVE_BOOT_COMPLETED**: Restore lock state after reboot
-- **FOREGROUND_SERVICE**: Keep blocking service running
-- **Accessibility Service**: Monitor and block app launches
-- **Device Admin**: Prevent uninstallation
+See `CLAUDE.md` for instructions on running tests.
 
 ## Acknowledgments
 
