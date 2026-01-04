@@ -32,8 +32,9 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 val app = context.applicationContext as? UnbrickApplication
                 if (app != null) {
-                    // Ensure lock state exists in database
+                    // Ensure lock state and settings exist in database
                     app.repository.ensureLockStateExists()
+                    app.repository.ensureSettingsExist()
 
                     val isLocked = app.repository.isLocked()
                     Log.d(TAG, "Lock state restored: isLocked=$isLocked")

@@ -55,6 +55,12 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
 
+        <!-- Settings Activity -->
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
         <!-- Accessibility Service for app blocking -->
         <service
             android:name=".service.AppBlockerAccessibilityService"
@@ -70,6 +76,16 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="App blocking accessibility service that runs in foreground to redirect users away from blocked apps when the device is in locked mode" />
+        </service>
+
+        <!-- Notification Listener Service for notification blocking -->
+        <service
+            android:name=".service.NotificationBlockerService"
+            android:exported="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
 
         <!-- Device Admin Receiver for uninstall protection -->

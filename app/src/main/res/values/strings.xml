@@ -44,6 +44,7 @@
 
     <!-- App Selection -->
     <string name="select_apps_title">Select Apps to Block</string>
+    <string name="select_apps_title_allow">Select Apps to Allow</string>
     <string name="mode_blocklist">Blocklist Mode</string>
     <string name="mode_allowlist">Allowlist Mode</string>
     <string name="mode_blocklist_desc">Block selected apps when locked</string>
@@ -73,12 +74,16 @@
     <string name="done">Done</string>
 
     <!-- Settings -->
+    <string name="settings_title">Settings</string>
     <string name="unlock_delay">Emergency Unlock Delay</string>
+    <string name="unlock_delay_desc">Time to wait before emergency unlock is available</string>
+    <string name="unlock_delay_30m">30 minutes</string>
     <string name="unlock_delay_1h">1 hour</string>
-    <string name="unlock_delay_6h">6 hours</string>
-    <string name="unlock_delay_12h">12 hours</string>
+    <string name="unlock_delay_4h">4 hours</string>
+    <string name="unlock_delay_8h">8 hours</string>
     <string name="unlock_delay_24h">24 hours</string>
-    <string name="unlock_delay_48h">48 hours</string>
+    <string name="block_settings_label">Block Settings when locked</string>
+    <string name="block_settings_desc">Prevent access to Android Settings to avoid disabling the blocker</string>
 
     <!-- Notifications -->
     <string name="notification_channel_name">Unbrick Status</string>
@@ -86,4 +91,8 @@
     <string name="notification_locked_title">Apps Blocked</string>
     <string name="notification_locked_text">Tap your NFC tag to unlock</string>
     <string name="app_blocked_toast">App blocked by Unbrick</string>
+
+    <!-- Notification Listener -->
+    <string name="notification_listener_permission">Notification Blocking</string>
+    <string name="enable_notification_listener">Enable</string>
 </resources>
