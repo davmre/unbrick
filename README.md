@@ -1,8 +1,8 @@
 # Unbrick
 
-An open-source Android app that helps you manage phone addiction by restricting app access until you tap an NFC tag.
+An open-source Android app that helps you manage phone addiction by restricting app access until you tap an NFC tag. Works with any NFC tag your phone can read, including many credit/debit cards, transit cards, key fobs, etc.
 
-Works with any NFC tag your phone can read, including many credit/debit cards, transit cards, key fobs, etc.
+<img src="unbrick_screenshot.png" alt="screenshot" width="25%">
 
 ## Features
 
