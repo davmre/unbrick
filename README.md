@@ -14,8 +14,9 @@ An open-source Android app that helps you manage phone addiction by restricting 
   - Device Admin prevents app uninstallation
   - Accessibility Service detects and blocks restricted apps
   - Settings app can be blocked to prevent disabling protections
+  - Lock state persists through reboots
 - **Emergency unlock**: Time-delayed unlock (default 1 hour) if you lose your NFC tag
-- **Persistence**: Lock state survives reboots
+- **Lock without NFC**: long-press the main button to lock without using the NFC tag (tag still required for unlock)
 
 ## Installation
 

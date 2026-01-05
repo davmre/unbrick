@@ -87,6 +87,12 @@ class MainActivity : AppCompatActivity() {
         binding.lockStatusCard.setOnClickListener {
             showLockToggleInfo()
         }
+        binding.lockStatusCard.setOnLongClickListener {
+            if (!isLocked) {
+                handleLongPressToLock()
+            }
+            true
+        }
 
         // NFC registration
         binding.btnRegisterTag.setOnClickListener {
@@ -394,6 +400,35 @@ class MainActivity : AppCompatActivity() {
             }
             Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun handleLongPressToLock() {
+        lifecycleScope.launch {
+            if (!repository.hasRegisteredTag()) {
+                Toast.makeText(this@MainActivity, "Register an NFC tag first", Toast.LENGTH_SHORT).show()
+            } else {
+                showLockWithoutTagConfirmation()
+            }
+        }
+    }
+
+    private fun showLockWithoutTagConfirmation() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.lock_without_tag_title)
+            .setMessage(R.string.lock_without_tag_message)
+            .setPositiveButton(R.string.lock_button) { _, _ ->
+                lifecycleScope.launch {
+                    val (canLock, error) = canEnterLockedMode()
+                    if (!canLock) {
+                        Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+                    repository.setLocked(true)
+                    Toast.makeText(this@MainActivity, "Locked", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun showRegisterTagDialog(tagId: String) {
